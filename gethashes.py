@@ -4,11 +4,12 @@ import binascii
 import hashlib
 import struct
 import argparse
+import re
 from subprocess import Popen, PIPE
 
 ZERO_BLOCK = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
     b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF"
-PUBKEY = b"\xFF\x12\x04\x00"
+PUBKEY = b"\x12\x04[\x00-\xFF]{129}\x01\x03\xFF"
 TCPA_BLOCK_LEN = 39
 TCPA_HEADER_LEN = 29
 PUBKEY_FILE = "my_key_pub"
@@ -29,10 +30,13 @@ def find_tcpa_block(data):
     return tcpa_temp[tcpa_start:tcpa_end + 1]
 
 def replace_pubkey(data, newpubkey):
-    pubkey = data.find(PUBKEY)
+    pattern = re.compile(PUBKEY)
+    pubkey = re.search(pattern, data)
     if not pubkey:
-        return None
-    pubkey = pubkey-1+len(PUBKEY)
+        print("Can't find PUBLIC KEY")
+        quit()
+    pubkey = pubkey.start()+2
+    print("Found PUBLIC KEY at", format(pubkey, '#04x'))
     assert(len(newpubkey) == 129)
     return data[:pubkey] + newpubkey + data[pubkey+129:]
 
